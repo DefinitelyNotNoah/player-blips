@@ -69,7 +69,8 @@ public class ClientScript : BaseScript
         foreach (var entry in playerData)
         {
             object[]? entryData = (object[])entry.Value;
-            
+
+            // Ensure that we're only checking for players inside the client's routing bucket.
             if (Game.Player.State["bucket"] != Convert.ToInt32(entryData[4]))
             {
                 // In the event that the player's routing bucket changes while they exist in _blipData,
@@ -84,7 +85,6 @@ public class ClientScript : BaseScript
             }
             
             // If the current iterated player is equal to the client's handle, skip the current loop and continue.
-            // We will also ensure that we're only checking for players inside the client's routing bucket.
             if (Convert.ToInt32(entry.Key) == Game.Player.ServerId)
             {
                 continue;
