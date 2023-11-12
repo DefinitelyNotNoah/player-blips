@@ -125,8 +125,6 @@ public class ClientScript : BaseScript
                         _entitiesInSameVehicle.Remove(entityBlip);
                     }
                 }
-
-                Debug.WriteLine(_entitiesInSameVehicle.Count);
                 
                 // In the event that the player changes their ped model, reset the entity blip entirely.
                 if (data.EntityBlip != 0 && !Natives.DoesBlipExist(data.EntityBlip))
