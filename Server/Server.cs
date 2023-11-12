@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,10 +10,10 @@ namespace Server;
 
 public class ServerScript : BaseScript
 {
-    private static readonly string _config =
+    private static readonly string Config =
         File.ReadAllText(Natives.GetResourcePath(Natives.GetCurrentResourceName()) + "/config.json");
 
-    private readonly dynamic _json = JsonConvert.DeserializeObject<dynamic>(_config);
+    private readonly dynamic _json = JsonConvert.DeserializeObject<dynamic>(Config);
 
     private void SendPlayerData()
     {
@@ -26,14 +24,16 @@ public class ServerScript : BaseScript
         {
             // Check if player is in vehicle.
             int vehicle = Natives.GetVehiclePedIsIn(player.Character.Handle, false);
-
+            bool isInVehicle = vehicle != 0;
+            
             playerData[player.Handle.ToString()] = new object[]
             {
                 player.Character.Position,
                 player.Character.Heading,
                 player.Name,
                 Natives.GetEntityModel(vehicle),
-                Natives.GetEntityRoutingBucket(player.Character.Handle)
+                isInVehicle,
+                Natives.GetPlayerRoutingBucket(player.Handle.ToString()),
             };
 
             // Update player state bags to make routing buckets known client-side.

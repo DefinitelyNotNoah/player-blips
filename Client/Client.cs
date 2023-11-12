@@ -6,7 +6,6 @@ using CitizenFX.Core;
 using CitizenFX.FiveM;
 using CitizenFX.FiveM.Native;
 using Client.Data;
-
 using static Client.Data.BlipUtil;
 
 namespace Client;
@@ -14,6 +13,8 @@ namespace Client;
 public class ClientScript : BaseScript
 {
     private readonly Dictionary<int, BlipData> _blipData = new();
+
+    private readonly List<int> _entitiesInSameVehicle = new();
 
     public ClientScript() => OnResourceStart();
 
@@ -56,7 +57,7 @@ public class ClientScript : BaseScript
         {
             object[]? entryData = (object[])entry.Value;
 
-            if (Game.Player.State["bucket"] != Convert.ToInt32(entryData[4]))
+            if (Game.Player.State["bucket"] != Convert.ToInt32(entryData[5]))
             {
                 // In the event that the player's routing bucket changes while they exist in _blipData,
                 // we'll search for them and remove them.
@@ -81,6 +82,7 @@ public class ClientScript : BaseScript
             float heading = (float)entryData[1];
             string name = (string)entryData[2];
             uint vehicleModel = Convert.ToUInt32(entryData[3]);
+            bool isInVehicle = (bool)entryData[4];
 
             // Check for server ID (KVP Key) existence.
             if (!_blipData.TryGetValue(Convert.ToInt32(entry.Key), out BlipData data))
@@ -98,12 +100,40 @@ public class ClientScript : BaseScript
                 // Continuously update the player's current vehicle model. This is used to vehicle blip checks.
                 data.VehicleModel = vehicleModel;
 
+                // If the player we're iterating over is inside a vehicle and the client is also inside a vehicle.
+                if (isInVehicle && Game.PlayerPed.IsInVehicle())
+                {
+                    int player = Natives.GetPlayerFromServerId(data.ServerId);
+                    int getPlayerEntity = Natives.GetPlayerPed(player);
+                    int playerVehicle = Natives.GetVehiclePedIsIn(getPlayerEntity, false);
+                    int clientVehicle = Game.PlayerPed.CurrentVehicle.Handle;
+                    
+                    // If both the iterated player and the client are in the same vehicle.
+                    if (playerVehicle == clientVehicle && !_entitiesInSameVehicle.Contains(data.EntityBlip))
+                    {
+                        Natives.SetBlipDisplay(data.EntityBlip, 0);
+                        _entitiesInSameVehicle.Add(data.EntityBlip);
+                    }
+                }
+                // In the event the client isn't in a vehicle, or the iterated player,
+                // this will execute and clear out the _entitiesInSameVehicle list, and also restore display.
+                if (_entitiesInSameVehicle.Contains(data.EntityBlip) && (!isInVehicle || !Game.PlayerPed.IsInVehicle()))
+                {
+                    foreach (int entityBlip in _entitiesInSameVehicle.ToList())
+                    {
+                        Natives.SetBlipDisplay(data.EntityBlip, 2);
+                        _entitiesInSameVehicle.Remove(entityBlip);
+                    }
+                }
+
+                Debug.WriteLine(_entitiesInSameVehicle.Count);
+                
                 // In the event that the player changes their ped model, reset the entity blip entirely.
                 if (data.EntityBlip != 0 && !Natives.DoesBlipExist(data.EntityBlip))
                 {
-                    int getPlayer = Natives.GetPlayerFromServerId(data.ServerId);
-                    int getEntity = Natives.GetPlayerPed(getPlayer);
-                    int entityBlip = Natives.AddBlipForEntity(getEntity);
+                    int player = Natives.GetPlayerFromServerId(data.ServerId);
+                    int getPlayerEntity = Natives.GetPlayerPed(player);
+                    int entityBlip = Natives.AddBlipForEntity(getPlayerEntity);
 
                     // Initialize entity blip.
                     InitializeBlip(entityBlip, vehicleModel, name);
@@ -119,7 +149,6 @@ public class ClientScript : BaseScript
                     InitializeBlip(data.EntityBlip, vehicleModel, name);
                     data.EntityExists = true;
                 }
-
 
                 // If entity blip doesn't exist, use the coordinate blip instead.
                 // We don't need to manipulate the entity blip since it's disposed of at this point.
@@ -190,6 +219,13 @@ public class ClientScript : BaseScript
 
         // Set coordinate blip display.
         Natives.SetBlipDisplay(data.CoordBlip, 2);
+        
+        // For whatever reason (theoretical), if the player possibly leaves the client's scope while they exist inside
+        // _entitiesInSameVehicle, we'll clear them out from here.
+        if (_entitiesInSameVehicle.Contains(data.EntityBlip))
+        {
+            _entitiesInSameVehicle.Remove(data.EntityBlip);
+        }
 
         // Since the entity no longer exists within the client's scope, we'll set data.EntityBlip to 0.
         data.EntityBlip = 0;
@@ -206,6 +242,12 @@ public class ClientScript : BaseScript
 
         int blip = data.CoordBlip;
 
+        // If the player leaves while inside the client's vehicle, call this.
+        if (_entitiesInSameVehicle.Contains(data.EntityBlip))
+        {
+            _entitiesInSameVehicle.Remove(data.EntityBlip);
+        }
+        
         // Remove the blip from client, and _blipData list whenever the player leaves.
         Natives.RemoveBlip(ref blip);
         _blipData.Remove(serverId);
