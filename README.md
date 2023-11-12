@@ -2,6 +2,7 @@
 * Dynamically switches between coordinate blips and entity blips.
 * Makes use of scope events to maximize efficiency.
 * Features vehicle blip sprites.
+* Clients only update players in the same routing bucket.
 
 # Install
 * Drop `player-blips` into your resource directory.
