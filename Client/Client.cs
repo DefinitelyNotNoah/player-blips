@@ -46,6 +46,7 @@ public class ClientScript : BaseScript
             // Blip Customization
             Natives.SetBlipAsShortRange(entityBlip, true);
             Natives.SetBlipScale(entityBlip, 1.30f);
+            Natives.SetBlipColour(entityBlip, (int)BlipColor.White);
             SetBlipName(entityBlip, player.Name);
 
             // Every player's coordinates on the server gets sent to the client every x amount of seconds.
@@ -125,6 +126,7 @@ public class ClientScript : BaseScript
                 else if (Natives.GetBlipSprite(data.EntityBlip) != BlipInfo.GetBlipSpriteForVehicle(data.VehicleModel))
                 {
                     Natives.SetBlipSprite(data.EntityBlip, BlipInfo.GetBlipSpriteForVehicle(data.VehicleModel));
+                    Natives.ShowHeadingIndicatorOnBlip(data.EntityBlip, data.VehicleModel == 0);
                     SetBlipName(data.EntityBlip, name);
                 }
             }
@@ -157,6 +159,7 @@ public class ClientScript : BaseScript
         // Customize Blip
         Natives.SetBlipAsShortRange(entityBlip, true);
         Natives.SetBlipScale(entityBlip, 1.30f);
+        Natives.SetBlipColour(entityBlip, (int)BlipColor.White);
 
         data.EntityBlip = entityBlip;
     }
