@@ -7,6 +7,8 @@ using CitizenFX.FiveM;
 using CitizenFX.FiveM.Native;
 using Client.Data;
 
+using static Client.Data.BlipUtil;
+
 namespace Client;
 
 public class ClientScript : BaseScript
@@ -14,16 +16,6 @@ public class ClientScript : BaseScript
     private readonly Dictionary<int, BlipData> _blipData = new();
 
     public ClientScript() => OnResourceStart();
-
-    private static void SetBlipName(int blip, string name)
-    {
-        Natives.AddTextEntry("playerblip", "~a~");
-        Natives.BeginTextCommandSetBlipName("playerblip");
-        Natives.AddTextComponentSubstringPlayerName(name);
-        Natives.EndTextCommandSetBlipName(blip);
-        Natives.SetBlipCategory(blip, 7);
-        Natives.DisplayPlayerNameTagsOnBlips(true);
-    }
 
     private async void OnResourceStart()
     {
@@ -42,12 +34,6 @@ public class ClientScript : BaseScript
             // Get the handle of the iterated player, and attach a blip to them.
             int playerEntity = player.Character.Handle;
             int entityBlip = Natives.AddBlipForEntity(playerEntity);
-
-            // Blip Customization
-            Natives.SetBlipAsShortRange(entityBlip, true);
-            Natives.SetBlipScale(entityBlip, 1.30f);
-            Natives.SetBlipColour(entityBlip, (int)BlipColor.White);
-            SetBlipName(entityBlip, player.Name);
 
             // Every player's coordinates on the server gets sent to the client every x amount of seconds.
             // We create a blip for each player and set that blip's position to the player's position, that updates every x amount of seconds.
@@ -70,7 +56,6 @@ public class ClientScript : BaseScript
         {
             object[]? entryData = (object[])entry.Value;
 
-            // Ensure that we're only checking for players inside the client's routing bucket.
             if (Game.Player.State["bucket"] != Convert.ToInt32(entryData[4]))
             {
                 // In the event that the player's routing bucket changes while they exist in _blipData,
@@ -81,29 +66,30 @@ public class ClientScript : BaseScript
                     Natives.RemoveBlip(ref coordBlip);
                     _blipData.Remove(Convert.ToInt32(entry.Key));
                 }
+
                 continue;
             }
-            
+
             // If the current iterated player is equal to the client's handle, skip the current loop and continue.
+            // We will also ensure that we're only checking for players inside the client's routing bucket.
             if (Convert.ToInt32(entry.Key) == Game.Player.ServerId)
             {
                 continue;
             }
-            
+
             Vector3 position = (Vector3)entryData[0];
             float heading = (float)entryData[1];
             string name = (string)entryData[2];
             uint vehicleModel = Convert.ToUInt32(entryData[3]);
-                
-            // Check for key existence
+
+            // Check for server ID (KVP Key) existence.
             if (!_blipData.TryGetValue(Convert.ToInt32(entry.Key), out BlipData data))
             {
                 int coordBlip = Natives.AddBlipForCoord(position.X, position.Y, position.Z);
-                    
-                // Customize Blip
-                Natives.SetBlipAsShortRange(coordBlip, true);
-                Natives.SetBlipScale(coordBlip, 1.30f);
-                    
+
+                // Initialize coordinate blip.
+                InitializeBlip(coordBlip, vehicleModel, name);
+
                 data = new BlipData(Convert.ToInt32(entry.Key), coordBlip, vehicleModel);
                 _blipData[Convert.ToInt32(entry.Key)] = data;
             }
@@ -111,38 +97,57 @@ public class ClientScript : BaseScript
             {
                 // Continuously update the player's current vehicle model. This is used to vehicle blip checks.
                 data.VehicleModel = vehicleModel;
-                
+
+                // In the event that the player changes their ped model, reset the entity blip entirely.
+                if (data.EntityBlip != 0 && !Natives.DoesBlipExist(data.EntityBlip))
+                {
+                    int getPlayer = Natives.GetPlayerFromServerId(data.ServerId);
+                    int getEntity = Natives.GetPlayerPed(getPlayer);
+                    int entityBlip = Natives.AddBlipForEntity(getEntity);
+
+                    // Initialize entity blip.
+                    InitializeBlip(entityBlip, vehicleModel, name);
+
+                    data.EntityBlip = entityBlip;
+                }
+
                 // If entity blip exists (meaning that the player exists in client scope)
                 // To ensure this only executes once, we'll use data.EntityExists.
                 if (data.EntityBlip != 0 && !data.EntityExists)
                 {
                     Natives.SetBlipDisplay(data.CoordBlip, 0);
-                    Natives.SetBlipScale(data.EntityBlip, 1.30f);
-                    Natives.ShowHeadingIndicatorOnBlip(data.EntityBlip, data.VehicleModel == 0);
-                    SetBlipName(data.EntityBlip, name);
+                    InitializeBlip(data.EntityBlip, vehicleModel, name);
                     data.EntityExists = true;
                 }
-                
+
+
                 // If entity blip doesn't exist, use the coordinate blip instead.
                 // We don't need to manipulate the entity blip since it's disposed of at this point.
                 if (data.EntityBlip == 0)
                 {
-                    Natives.SetBlipDisplay(data.CoordBlip, 2);
-                    Natives.SetBlipSprite(data.CoordBlip, BlipInfo.GetBlipSpriteForVehicle(data.VehicleModel));
-                    Natives.ShowHeadingIndicatorOnBlip(data.CoordBlip, data.VehicleModel == 0);
+                    // To prevent using this native every x amount of seconds, we'll only check if blip sprite has changed.
+                    // This will actively check if the current coordinate blip sprite is equal to the saved sprite.
+                    // This works because we update data.VehicleModel above, which we can use to compare the sprite.
+                    if (Natives.GetBlipSprite(data.CoordBlip) != BlipInfo.GetBlipSpriteForVehicle(data.VehicleModel))
+                    {
+                        UpdateBlip(data.CoordBlip, data.VehicleModel, name);
+                    }
+
+                    // Update coordinate blip coords
                     Natives.SetBlipCoords(data.CoordBlip, position.X, position.Y, position.Z);
-                    SetBlipName(data.CoordBlip, name);
+
+                    // As long as the player is not in a vehicle.
                     if (data.VehicleModel == 0)
                     {
                         Natives.SetBlipRotation(data.CoordBlip, (int)heading);
                     }
                 }
                 // To prevent using this native every x amount of seconds, we'll only check if blip sprite has changed.
+                // This will actively check if the current entity blip sprite is equal to the saved sprite.
+                // This works because we update data.VehicleModel above, which we can use to compare the sprite.
                 else if (Natives.GetBlipSprite(data.EntityBlip) != BlipInfo.GetBlipSpriteForVehicle(data.VehicleModel))
                 {
-                    Natives.SetBlipSprite(data.EntityBlip, BlipInfo.GetBlipSpriteForVehicle(data.VehicleModel));
-                    Natives.ShowHeadingIndicatorOnBlip(data.EntityBlip, data.VehicleModel == 0);
-                    SetBlipName(data.EntityBlip, name);
+                    UpdateBlip(data.EntityBlip, data.VehicleModel, name);
                 }
             }
         }
@@ -171,11 +176,6 @@ public class ClientScript : BaseScript
 
         int entityBlip = Natives.AddBlipForEntity(playerPed);
 
-        // Customize Blip
-        Natives.SetBlipAsShortRange(entityBlip, true);
-        Natives.SetBlipScale(entityBlip, 1.30f);
-        Natives.SetBlipColour(entityBlip, (int)BlipColor.White);
-
         data.EntityBlip = entityBlip;
     }
 
@@ -187,6 +187,9 @@ public class ClientScript : BaseScript
         {
             return;
         }
+
+        // Set coordinate blip display.
+        Natives.SetBlipDisplay(data.CoordBlip, 2);
 
         // Since the entity no longer exists within the client's scope, we'll set data.EntityBlip to 0.
         data.EntityBlip = 0;

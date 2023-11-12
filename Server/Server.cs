@@ -12,6 +12,11 @@ namespace Server;
 
 public class ServerScript : BaseScript
 {
+    private static readonly string _config =
+        File.ReadAllText(Natives.GetResourcePath(Natives.GetCurrentResourceName()) + "/config.json");
+
+    private readonly dynamic _json = JsonConvert.DeserializeObject<dynamic>(_config);
+
     private void SendPlayerData()
     {
         IDictionary<string, object> playerData = new Dictionary<string, object>();
@@ -32,7 +37,7 @@ public class ServerScript : BaseScript
             };
 
             // Update player state bags to make routing buckets known client-side.
-            player.State["bucket"] = Natives.GetEntityRoutingBucket(player.Character.Handle);
+            player.State["bucket"] = Natives.GetPlayerRoutingBucket(player.Handle.ToString());
         }
 
         Events.TriggerAllClientsEvent("PlayerBlips-Client:ReceivePlayerData", playerData);
@@ -60,9 +65,6 @@ public class ServerScript : BaseScript
     public async Coroutine OnTick()
     {
         SendPlayerData();
-        string config = File.ReadAllText(Natives.GetResourcePath("playerblips") + "/config.json");
-        dynamic json = JsonConvert.DeserializeObject<dynamic>(config);
-        
-        await Wait((uint)json["Delay"]);
+        await Wait((uint)_json["Delay"]);
     }
 }
