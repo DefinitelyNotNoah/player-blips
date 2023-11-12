@@ -1,4 +1,5 @@
 # player-blips
+* Fully event driven.
 * Dynamically switches between coordinate blips and entity blips.
 * Makes use of scope events to maximize efficiency.
 * Features vehicle blip sprites.
