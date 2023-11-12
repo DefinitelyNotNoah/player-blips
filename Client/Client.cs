@@ -68,13 +68,28 @@ public class ClientScript : BaseScript
         // Loop through all the positions that are being sent to the client every x amount of seconds.
         foreach (var entry in playerData)
         {
+            object[]? entryData = (object[])entry.Value;
+            
+            if (Game.Player.State["bucket"] != Convert.ToInt32(entryData[4]))
+            {
+                // In the event that the player's routing bucket changes while they exist in _blipData,
+                // we'll search for them and remove them.
+                if (_blipData.TryGetValue(Convert.ToInt32(entry.Key), out BlipData player))
+                {
+                    int coordBlip = player.CoordBlip;
+                    Natives.RemoveBlip(ref coordBlip);
+                    _blipData.Remove(Convert.ToInt32(entry.Key));
+                }
+                continue;
+            }
+            
             // If the current iterated player is equal to the client's handle, skip the current loop and continue.
+            // We will also ensure that we're only checking for players inside the client's routing bucket.
             if (Convert.ToInt32(entry.Key) == Game.Player.ServerId)
             {
                 continue;
             }
-                
-            object[]? entryData = (object[])entry.Value;
+            
             Vector3 position = (Vector3)entryData[0];
             float heading = (float)entryData[1];
             string name = (string)entryData[2];

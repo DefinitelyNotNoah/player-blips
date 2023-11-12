@@ -26,7 +26,11 @@ public class ServerScript : BaseScript
                 player.Character.Heading,
                 player.Name,
                 Natives.GetEntityModel(vehicle),
+                Natives.GetEntityRoutingBucket(player.Character.Handle)
             };
+            
+            // Update player state bags to make routing buckets known client-side.
+            player.State["bucket"] = Natives.GetEntityRoutingBucket(player.Character.Handle);
         }
         Events.TriggerAllClientsEvent("PlayerBlips-Client:ReceivePlayerData", playerData);
     }
