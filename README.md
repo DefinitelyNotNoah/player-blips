@@ -9,12 +9,9 @@
 * Add `ensure player-blips` to your server.cfg file.
 
 # Usage
-To change the update rate for coordinate blips, change the following:
-```cs
-        [Tick]
-        public async Coroutine OnTick()
-        {
-            SendPlayerData();
-            await Wait(500); // <-- Change
-        }
+To change the update rate for coordinate blips, change the following in `config.json`
+```json
+{
+    "Delay": 500
+}
 ```
