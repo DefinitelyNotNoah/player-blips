@@ -5,8 +5,8 @@
 * Clients only update players in the same routing bucket.
 
 # Install
-* Drop `player-blips` into your resource directory.
-* Add `ensure player-blips` to your server.cfg file.
+* Drop `playerblips` into your resource directory.
+* Add `ensure playerblips` to your server.cfg file.
 
 # Usage
 To change the update rate for coordinate blips, change the following in `config.json`
