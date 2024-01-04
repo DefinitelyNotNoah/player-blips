@@ -1,5 +1,5 @@
 using CitizenFX.Core;
-using CitizenFX.FiveM.Native;
+using CitizenFX.Core.Native;
 
 namespace Client.Data;
 
@@ -10,12 +10,12 @@ public class BlipUtil : BaseScript
     /// </summary>
     public static void SetBlipName(int blip, string name)
     {
-        Natives.AddTextEntry("playerblip", "~a~");
-        Natives.BeginTextCommandSetBlipName("playerblip");
-        Natives.AddTextComponentSubstringPlayerName(name);
-        Natives.EndTextCommandSetBlipName(blip);
-        Natives.SetBlipCategory(blip, 7);
-        Natives.DisplayPlayerNameTagsOnBlips(true);
+        API.AddTextEntry("playerblip", "~a~");
+        API.BeginTextCommandSetBlipName("playerblip");
+        API.AddTextComponentSubstringPlayerName(name);
+        API.EndTextCommandSetBlipName(blip);
+        API.SetBlipCategory(blip, 7);
+        API.DisplayPlayerNameTagsOnBlips(true);
     }
 
     /// <summary>
@@ -23,21 +23,21 @@ public class BlipUtil : BaseScript
     /// </summary>
     public static void UpdateBlip(int blip, uint vehicleModel, string name)
     {
-        Natives.SetBlipSprite(blip, BlipInfo.GetBlipSpriteForVehicle(vehicleModel));
-        Natives.ShowHeadingIndicatorOnBlip(blip, vehicleModel == 0);
+        API.SetBlipSprite(blip, BlipInfo.GetBlipSpriteForVehicle(vehicleModel));
+        API.ShowHeadingIndicatorOnBlip(blip, vehicleModel == 0);
         SetBlipName(blip, name);
     }
 
     /// <summary>
     /// In the event that the coordinate or entity blip does not exist, this will get called and fully initialize
-    /// a new blip. This does not create a new blip, it only calls the required natives.
+    /// a new blip. This does not create a new blip, it only calls the required API.
     /// </summary>
     public static void InitializeBlip(int blip, uint vehicleModel, string name)
     {
-        Natives.SetBlipAsShortRange(blip, true);
-        Natives.SetBlipScale(blip, 1.30f);
-        Natives.SetBlipSprite(blip, BlipInfo.GetBlipSpriteForVehicle(vehicleModel));
-        Natives.ShowHeadingIndicatorOnBlip(blip, vehicleModel == 0);
+        API.SetBlipAsShortRange(blip, true);
+        API.SetBlipScale(blip, 1.30f);
+        API.SetBlipSprite(blip, BlipInfo.GetBlipSpriteForVehicle(vehicleModel));
+        API.ShowHeadingIndicatorOnBlip(blip, vehicleModel == 0);
         SetBlipName(blip, name);
     }
 }

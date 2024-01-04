@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using CitizenFX.Core;
-using CitizenFX.FiveM;
-using CitizenFX.FiveM.Native;
+using CitizenFX.Core.Native;
 
 namespace Client.Data;
 
@@ -65,27 +64,27 @@ public abstract class BlipInfo : BaseScript
 
     public static int GetBlipSpriteForVehicle(uint vehicleModel)
     {
-        string displayName = Natives.GetDisplayNameFromVehicleModel(vehicleModel);
+        string displayName = API.GetDisplayNameFromVehicleModel(vehicleModel);
         if (Sprites.TryGetValue(displayName, out int blipSprite))
         {
             return blipSprite;
         }
 
-        if (Natives.IsThisModelABike(vehicleModel))
+        if (API.IsThisModelABike(vehicleModel))
         {
             return 348;
         }
         
-        if (Natives.IsThisModelABoat(vehicleModel))
+        if (API.IsThisModelABoat(vehicleModel))
         {
             return 427;
         }
         
-        if (Natives.IsThisModelAHeli(vehicleModel))
+        if (API.IsThisModelAHeli(vehicleModel))
         {
             return 422;
         }
         
-        return Natives.IsThisModelAPlane(vehicleModel) ? 423 : 225;
+        return API.IsThisModelAPlane(vehicleModel) ? 423 : 225;
     }
 }
