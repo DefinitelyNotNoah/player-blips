@@ -1,3 +1,5 @@
+[https://forum.cfx.re/t/real-time-player-blips-on-map/5184529](https://forum.cfx.re/t/real-time-player-blips-on-map/5184529)
+
 # player-blips
 * Fully event driven.
 * Dynamically switches between coordinate blips and entity blips.
